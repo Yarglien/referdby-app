@@ -1,0 +1,59 @@
+project_id = "lykukadtlhptlskrocux"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+port = 54327
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+port = 54328
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_users = false
+
+[functions.google-places-simple]
+verify_jwt = false
+
+[functions.geocode-restaurant]
+verify_jwt = true
+
+[functions.sync-user-profile]
+verify_jwt = true
+
+[functions.update-exchange-rates]
+verify_jwt = true
+
+[functions.send-feedback-email]
+verify_jwt = false
+
+[functions.feedback-response]
+verify_jwt = false
+
+[functions.password-reset-email]
+verify_jwt = false
+
+[functions.get-google-maps-client-key]
+verify_jwt = false
