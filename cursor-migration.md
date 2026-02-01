@@ -69,17 +69,41 @@ If you wish to run the app on iOS or Android:
 
 ---
 
-## Project Structure Overview
+## Repository Migration
 
-- `src/components/`: Contains reusable UI components, organized by feature.
-- `src/pages/`: Main application routes and page-level components.
-- `src/integrations/`: Third-party service configurations (currently just Supabase).
-- `src/hooks/`: Custom React hooks for data fetching and logic.
-- `src/contexts/`: React Context providers for global state (e.g., Auth).
-- `src/services/`: Business logic and API calls.
-- `src/utils/`: Helper functions and shared utilities.
-- `supabase/`: Contains database migrations and edge functions (if any).
-- `public/lovable-uploads/`: Assets uploaded via the Lovable editor, now stored locally.
+To move away from the Lovable-managed repository and start a fresh history in Cursor:
+
+1.  **Clear old Git history**: 
+    ```bash
+    rm -rf .git
+    ```
+2.  **Initialize new repository**:
+    ```bash
+    git init
+    git add .
+    git commit -m "Initial commit: Migrated from Lovable to Cursor"
+    ```
+3.  **Link to new GitHub Repo**: Create a new repository on GitHub (e.g., `referdby-app`) and run:
+    ```bash
+    git remote add origin <YOUR_NEW_REPO_URL>
+    git branch -M main
+    git push -u origin main
+    ```
+
+## Vercel Deployment (Replacing Lovable Hosting)
+
+To host your app and point your custom domain `www.referdby.com` to it:
+
+1.  **Sign up for Vercel**: Connect your GitHub account at [vercel.com](https://vercel.com).
+2.  **Import Project**: Select your new `referdby-app` repository.
+3.  **Configure Build**:
+    - **Framework Preset**: Vite
+    - **Build Command**: `npm run build`
+    - **Output Directory**: `dist`
+4.  **Environment Variables**: Add the following in the Vercel project settings:
+    - `VITE_SUPABASE_URL`: (Your Supabase URL)
+    - `VITE_SUPABASE_ANON_KEY`: (Your Supabase Anon Key)
+5.  **Domains**: Add `referdby.com` and `www.referdby.com` in Vercel Settings > Domains and follow the DNS instructions to update your domain provider.
 
 ## Key Scripts
 
