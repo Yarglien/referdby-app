@@ -21,6 +21,13 @@ const RestaurantManager = () => {
   const [showCarousel, setShowCarousel] = useState(false);
   const { t } = useTranslation();
 
+  // Reset scroll position on mount to prevent layout shift when navigating from Personal
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
   // Redirect to home page when in personal mode
   useEffect(() => {
     if (viewMode === 'personal') {
@@ -131,7 +138,7 @@ const RestaurantManager = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-safe-top">
+    <div className="min-h-screen bg-background">
       <ViewModeSelector />
       
       <div className="p-6 space-y-6 pb-20">

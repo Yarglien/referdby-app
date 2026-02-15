@@ -25,9 +25,11 @@ const Index = () => {
       // Only redirect managers/servers, don't interfere with customers
       if (profile.role === 'manager' && viewMode === 'restaurant') {
         console.log('Redirecting manager to restaurant-manager');
+        window.scrollTo(0, 0);
         navigate('/restaurant-manager');
       } else if (profile.role === 'server' && viewMode === 'restaurant') {
         console.log('Redirecting server to server-home');
+        window.scrollTo(0, 0);
         navigate('/server-home');
       } else {
         console.log('Staying on customer home page, role:', profile.role, 'viewMode:', viewMode);

@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import { DualRoleNavigation } from "@/components/DualRoleNavigation";
 import { ViewModeSelector } from "@/components/ViewModeSelector";
 import { ServerHeader } from "@/components/server/ServerHeader";
@@ -20,6 +21,13 @@ interface RestaurantData {
 const ServerHome = () => {
   const { viewMode } = useViewMode();
   const { profile, isLoading: isProfileLoading } = useUser();
+
+  // Reset scroll position on mount to prevent layout shift when navigating from Personal
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
 
   // Fetch restaurant data separately using the profile's restaurant_id
   const { data: restaurantData, isLoading: isRestaurantLoading } = useQuery({
@@ -59,7 +67,7 @@ const ServerHome = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-safe-top">
+    <div className="min-h-screen bg-background">
       <ViewModeSelector />
       
       <div className="p-6 space-y-6 pb-20">
