@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
   cleanupAuthState,
-  isCurrentSessionValid,
   isSessionExpired,
   updateCurrentSessionToken,
   updateLastUsed,
@@ -78,20 +77,8 @@ export const useAuthSession = () => {
 
         // Check if session exists
         if (session?.user) {
-          // Single-session: user can only be logged in on one device at a time
-          if (session.refresh_token) {
-            const sessionValid = await isCurrentSessionValid(session.user.id, session.refresh_token);
-            if (!sessionValid) {
-              console.log('Session invalid - user logged in elsewhere, signing out');
-              toast({
-                title: "Logged in elsewhere",
-                description: "You've been signed out because you logged in on another device",
-                variant: "destructive",
-              });
-              await handleSignOut();
-              return;
-            }
-          }
+          // Single-session check skipped on init - token may not be stored yet after fresh login.
+          // Validation runs in useInactivityCheck (every 60s) instead.
 
           // Check if user has been inactive for 5+ hours (e.g. returned to computer after long absence)
           const { data: profile } = await supabase
