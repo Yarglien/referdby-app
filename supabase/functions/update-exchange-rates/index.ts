@@ -49,12 +49,13 @@ serve(async (req) => {
       'ZMW', 'ZWL'
     ];
 
-    // Check if we already have fresh rates (less than 23 hours old) to avoid unnecessary API calls
+    // Check if we already have fresh rates (less than 7 days old) to avoid unnecessary API calls
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
     const { data: recentRates } = await supabaseClient
       .from('exchange_rates')
       .select('from_currency, fetched_at')
       .eq('is_active', true)
-      .gte('fetched_at', new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString());
+      .gte('fetched_at', new Date(Date.now() - SEVEN_DAYS_MS).toISOString());
 
     const recentCurrencies = new Set(recentRates?.map(r => r.from_currency) || []);
     const currenciesToUpdate = currencyPairs.filter(currency => !recentCurrencies.has(currency));
@@ -66,7 +67,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'All exchange rates are fresh (less than 23 hours old)',
+          message: 'All exchange rates are fresh (less than 7 days old)',
           skipped: recentCurrencies.size,
           timestamp: new Date().toISOString()
         }),

@@ -98,6 +98,7 @@ const MakeReferral = () => {
   const showGoogleRestaurants = cuisineFilter === "all";
 
   // Get user's location for distance calculation
+  // Use 3s timeout and low accuracy - avoid 10s+ wait when location unavailable
   useEffect(() => {
     if (hasCheckedLocation) return;
     
@@ -119,17 +120,15 @@ const MakeReferral = () => {
         (error) => {
           console.error("Geolocation error:", error);
           setHasCheckedLocation(true);
-          // Show location prompt dialog instead of defaulting to NY
           setShowLocationPrompt(true);
         },
         {
-          timeout: 10000,
-          enableHighAccuracy: true,
+          timeout: 3000,
+          enableHighAccuracy: false, // Much faster; user can search manually for precision
           maximumAge: 300000
         }
       );
     } else {
-      // Browser doesn't support geolocation
       setHasCheckedLocation(true);
       setShowLocationPrompt(true);
     }

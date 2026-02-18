@@ -503,6 +503,7 @@ export type Database = {
           country_code: string | null
           created_at: string
           current_points: number | null
+          current_session_token: string | null
           distance_unit: string | null
           email: string | null
           email_notifications: boolean | null
@@ -532,6 +533,7 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           current_points?: number | null
+          current_session_token?: string | null
           distance_unit?: string | null
           email?: string | null
           email_notifications?: boolean | null
@@ -561,6 +563,7 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           current_points?: number | null
+          current_session_token?: string | null
           distance_unit?: string | null
           email?: string | null
           email_notifications?: boolean | null

@@ -11,9 +11,12 @@ interface ActivityPage {
   nextPage: number | undefined;
 }
 
-export const useActivityData = (profile: any) => {
+export const useActivityData = (
+  profile: any,
+  managerRestaurant?: { id: string } | null
+) => {
   return useInfiniteQuery<ActivityPage>({
-    queryKey: ['activities', profile?.role],
+    queryKey: ['activities', profile?.role, managerRestaurant?.id],
     queryFn: async ({ pageParam = 0 }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
@@ -36,10 +39,10 @@ export const useActivityData = (profile: any) => {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      // Apply different filters based on user role
-      if (profile?.role === 'manager' && profile.restaurants?.id) {
+      // Apply different filters based on user role (managerRestaurant from normalized profile.restaurants)
+      if (profile?.role === 'manager' && managerRestaurant?.id) {
         query = query
-          .eq('restaurant_id', profile.restaurants.id)
+          .eq('restaurant_id', managerRestaurant.id)
           .or('restaurant_deduction.gt.0,restaurant_deduction.lt.0');
       } else {
         // Find all activities where the user appears in any role

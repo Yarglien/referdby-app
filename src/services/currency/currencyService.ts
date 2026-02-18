@@ -1,16 +1,13 @@
-
 import { CurrencyConversionResult } from "./types";
 import { CurrencyCache } from "./cache";
-import { CurrencyAPI } from "./api";
 import { CurrencyDatabase } from "./database";
 
 class CurrencyService {
   private cache = new CurrencyCache();
-  private api = new CurrencyAPI();
   private database = new CurrencyDatabase();
 
   /**
-   * Get exchange rate from database first, then API if needed
+   * Get exchange rate from database only (client never calls external API)
    */
   private async fetchExchangeRate(fromCurrency: string, toCurrency: string): Promise<number> {
     if (fromCurrency === toCurrency) return 1;
@@ -22,7 +19,7 @@ class CurrencyService {
     }
 
     try {
-      // First, try to get the rate from database
+      // Get rate from database only - backend updates rates weekly via cron
       const dbRate = await this.database.getExchangeRate(fromCurrency, toCurrency);
       if (dbRate) {
         console.log(`Using database exchange rate: ${fromCurrency} to ${toCurrency} = ${dbRate}`);
@@ -30,30 +27,18 @@ class CurrencyService {
         return dbRate;
       }
 
-      // If not in database or outdated, fetch from API
-      const apiRate = await this.api.fetchExchangeRate(fromCurrency, toCurrency);
-      
-      // Store the new rate in database
-      await this.database.storeExchangeRate(fromCurrency, toCurrency, apiRate);
-      
-      // Cache the result
-      this.cache.set(fromCurrency, toCurrency, apiRate);
-      
-      console.log(`Fetched new exchange rate from API: ${fromCurrency} to ${toCurrency} = ${apiRate}`);
-      return apiRate;
-      
-    } catch (error) {
-      console.error(`Error fetching exchange rate for ${fromCurrency} to ${toCurrency}:`, error);
-      
-      // Try to get any rate from database as backup (even if older)
+      // Try backup (stale rate) if no fresh rate available
       const backupRate = await this.database.getExchangeRate(fromCurrency, toCurrency, true);
       if (backupRate) {
         console.warn(`Using backup database rate for ${fromCurrency} to ${toCurrency}: ${backupRate}`);
+        this.cache.set(fromCurrency, toCurrency, backupRate);
         return backupRate;
       }
-      
-      // Last resort - throw error instead of using 1:1
-      throw new Error(`Unable to get exchange rate for ${fromCurrency} to ${toCurrency}. No API access and no database backup available.`);
+
+      throw new Error(`Exchange rate for ${fromCurrency} to ${toCurrency} not available. Rates are updated weekly by the backend.`);
+    } catch (error) {
+      console.error(`Error fetching exchange rate for ${fromCurrency} to ${toCurrency}:`, error);
+      throw error;
     }
   }
 

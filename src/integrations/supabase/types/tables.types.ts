@@ -150,6 +150,7 @@ profiles: {
     country_code: string | null
     created_at: string
     current_points: number | null
+    current_session_token: string | null
     email: string | null
     first_name: string | null
     home_address_line1: string | null
@@ -175,6 +176,7 @@ profiles: {
     country_code?: string | null
     created_at?: string
     current_points?: number | null
+    current_session_token?: string | null
     email?: string | null
     first_name?: string | null
     home_address_line1?: string | null
@@ -200,6 +202,7 @@ profiles: {
     country_code?: string | null
     created_at?: string
     current_points?: number | null
+    current_session_token?: string | null
     email?: string | null
     first_name?: string | null
     home_address_line1?: string | null

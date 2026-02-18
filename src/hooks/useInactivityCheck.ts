@@ -1,7 +1,8 @@
-
 import { useRef, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { getInactivityThresholdMs, isCurrentSessionValid } from '@/utils/authCleanup';
 
 interface UseInactivityCheckProps {
   user: User | null;
@@ -22,16 +23,31 @@ export const useInactivityCheck = ({
   // Check for inactivity every minute, but not immediately after login
   useEffect(() => {
     if (user) {
-      activityCheckIntervalRef.current = setInterval(() => {
-        // Don't check inactivity if user just logged in (give them 3 hours grace period)
+      activityCheckIntervalRef.current = setInterval(async () => {
+        // Don't check inactivity if user just logged in (give them 30 min grace period)
         if (justLoggedInRef.current) {
           return;
         }
 
-        const fourHoursAgo = Date.now() - 4 * 60 * 60 * 1000;
+        // Single-session: check if user logged in elsewhere
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id && session.refresh_token) {
+          const sessionValid = await isCurrentSessionValid(session.user.id, session.refresh_token);
+          if (!sessionValid) {
+            toast({
+              title: "Logged in elsewhere",
+              description: "You've been signed out because you logged in on another device",
+              variant: "destructive",
+            });
+            handleSignOut();
+            return;
+          }
+        }
+
+        const inactivityThreshold = Date.now() - getInactivityThresholdMs();
         
-        if (lastActivityRef.current < fourHoursAgo) {
-          console.log('User inactive for 4+ hours, forcing logout');
+        if (lastActivityRef.current < inactivityThreshold) {
+          console.log('User inactive for 5+ hours, forcing logout');
           toast({
             title: "Session Expired",
             description: "You've been logged out due to inactivity",

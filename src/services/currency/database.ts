@@ -3,8 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export class CurrencyDatabase {
-  private readonly MAX_DB_AGE_DAYS = 7; // Maximum age for database rates before showing error
-  private readonly RATE_REFRESH_DAYS = 5; // Match the cron job schedule - only fetch new rates if older than 5 days
+  private readonly MAX_DB_AGE_DAYS = 10; // Maximum age before warning (allows buffer for 7-day update cycle)
 
   async getExchangeRate(
     fromCurrency: string, 
@@ -54,13 +53,6 @@ export class CurrencyDatabase {
         if (!allowStale) {
           return null;
         }
-      }
-
-      // Match the cron job schedule - only fetch new rates if older than 5 days
-      const ageInDaysForRefresh = ageInHours / 24;
-      if (!allowStale && ageInDaysForRefresh > this.RATE_REFRESH_DAYS) {
-        console.log(`Database rate is ${ageInDaysForRefresh.toFixed(1)} days old, fetching fresh rate`);
-        return null;
       }
 
       return Number(rate.rate);

@@ -9,8 +9,14 @@ import { useActivityData } from "@/hooks/useActivityData";
 import { getActivityTitle, getPointsValues, groupActivitiesByDate } from "@/utils/activityUtils";
 import { Button } from "@/components/ui/button";
 
+// Managers get restaurants as array from FK join; normalize to single restaurant
+const getManagerRestaurant = (profile: { restaurants?: { id: string; name: string; current_points: number }[] | { id: string; name: string; current_points: number } | null }) => {
+  if (!profile?.restaurants) return null;
+  return Array.isArray(profile.restaurants) ? profile.restaurants[0] ?? null : profile.restaurants;
+};
+
 const Activity = () => {
-  const { data: profile, isLoading: profileLoading } = useQuery({
+  const { data: profile, isLoading: profileLoading, isError: profileError } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -27,16 +33,28 @@ const Activity = () => {
     }
   });
 
+  const managerRestaurant = getManagerRestaurant(profile as any);
   const { 
     data, 
     isLoading: activitiesLoading,
+    isError: activitiesError,
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage
-  } = useActivityData(profile);
+  } = useActivityData(profile, managerRestaurant);
 
   if (profileLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
+  }
+
+  if (profileError) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <p className="text-destructive text-center">Failed to load profile. Please try again.</p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>Retry</Button>
+        <BottomNav />
+      </div>
+    );
   }
 
   if (activitiesLoading && !data) {
@@ -45,11 +63,30 @@ const Activity = () => {
         <ActivityHeader 
           role={profile?.role}
           currentPoints={profile?.current_points}
-          restaurantPoints={profile?.restaurants?.current_points}
+          restaurantPoints={managerRestaurant?.current_points}
         />
         <main className="p-4 space-y-6">
           <div className="text-center py-12">
             <p className="text-lg text-muted-foreground">Loading activities...</p>
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  if (activitiesError) {
+    return (
+      <div className="pb-20 min-h-screen bg-background pt-safe-top">
+        <ActivityHeader
+          role={profile?.role}
+          currentPoints={profile?.current_points}
+          restaurantPoints={managerRestaurant?.current_points}
+        />
+        <main className="p-4">
+          <p className="text-destructive text-center py-8">Failed to load activities. Please try again.</p>
+          <div className="flex justify-center">
+            <Button variant="outline" onClick={() => window.location.reload()}>Retry</Button>
           </div>
         </main>
         <BottomNav />
@@ -68,7 +105,7 @@ const Activity = () => {
       <ActivityHeader
         role={profile?.role}
         currentPoints={profile?.current_points}
-        restaurantPoints={profile?.restaurants?.current_points}
+        restaurantPoints={managerRestaurant?.current_points}
       />
       <main className="p-4 space-y-6">
         <ActivityList

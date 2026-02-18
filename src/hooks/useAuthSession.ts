@@ -3,7 +3,13 @@ import { User } from '@supabase/supabase-js';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { cleanupAuthState, isSessionExpired, updateLastUsed } from '@/utils/authCleanup';
+import {
+  cleanupAuthState,
+  isCurrentSessionValid,
+  isSessionExpired,
+  updateCurrentSessionToken,
+  updateLastUsed,
+} from '@/utils/authCleanup';
 import { useQueryClient } from '@tanstack/react-query';
 
 export const useAuthSession = () => {
@@ -72,8 +78,39 @@ export const useAuthSession = () => {
 
         // Check if session exists
         if (session?.user) {
-          // Only check for session expiry on initial load, not on every navigation
-          // The inactivity check will handle ongoing monitoring
+          // Single-session: user can only be logged in on one device at a time
+          if (session.refresh_token) {
+            const sessionValid = await isCurrentSessionValid(session.user.id, session.refresh_token);
+            if (!sessionValid) {
+              console.log('Session invalid - user logged in elsewhere, signing out');
+              toast({
+                title: "Logged in elsewhere",
+                description: "You've been signed out because you logged in on another device",
+                variant: "destructive",
+              });
+              await handleSignOut();
+              return;
+            }
+          }
+
+          // Check if user has been inactive for 5+ hours (e.g. returned to computer after long absence)
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('last_used')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile?.last_used && isSessionExpired(profile.last_used)) {
+            console.log('Session expired due to 5+ hours inactivity, signing out');
+            toast({
+              title: "Session Expired",
+              description: "You've been logged out due to inactivity",
+              variant: "destructive",
+            });
+            await handleSignOut();
+            return;
+          }
+
           setUser(session.user);
           
           // Update last used timestamp
@@ -106,6 +143,11 @@ export const useAuthSession = () => {
             // Clear all cached data to prevent cross-user contamination
             queryClient.clear();
             
+            // Single-session: update active session token so other devices get signed out
+            if (session.refresh_token) {
+              await updateCurrentSessionToken(session.user.id, session.refresh_token);
+            }
+            
             // Mark that user just logged in
             justLoggedInRef.current = true;
             
@@ -130,7 +172,20 @@ export const useAuthSession = () => {
             setUser(null);
             navigate('/auth');
           } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-            // Update activity on token refresh
+            // Single-session: verify we're still the active device & update our token
+            if (session.refresh_token) {
+              const sessionValid = await isCurrentSessionValid(session.user.id, session.refresh_token);
+              if (!sessionValid) {
+                toast({
+                  title: "Logged in elsewhere",
+                  description: "You've been signed out because you logged in on another device",
+                  variant: "destructive",
+                });
+                await handleSignOut();
+                return;
+              }
+              await updateCurrentSessionToken(session.user.id, session.refresh_token);
+            }
             await updateLastUsed(session.user.id);
             setUser(session.user);
           }
