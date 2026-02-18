@@ -11,6 +11,11 @@ interface UseInactivityCheckProps {
   handleSignOut: () => Promise<void>;
 }
 
+const GRACE_PERIOD_MS = 5 * 60 * 1000; // 5 minutes - skip all checks after user becomes active
+const CHECK_INTERVAL_MS = 60 * 1000; // 1 minute
+
+const ENABLE_INACTIVITY_CHECK = true;
+
 export const useInactivityCheck = ({
   user,
   lastActivityRef,
@@ -18,12 +23,24 @@ export const useInactivityCheck = ({
   handleSignOut
 }: UseInactivityCheckProps) => {
   const { toast } = useToast();
-  const activityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const activityCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const initialDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userActiveSinceRef = useRef<number>(0);
 
-  // Check for inactivity every minute, but not immediately after login
   useEffect(() => {
     if (user) {
-      activityCheckIntervalRef.current = setInterval(async () => {
+      userActiveSinceRef.current = Date.now();
+    }
+  }, [user]);
+
+  // Check for inactivity every minute, with 2-min delay before first check (prevents sign-out-after-login)
+  useEffect(() => {
+    if (user && ENABLE_INACTIVITY_CHECK) {
+      const runCheck = async () => {
+        // Skip all checks for 5 min after user becomes active (prevents sign-out-after-login bug)
+        if (Date.now() - userActiveSinceRef.current < GRACE_PERIOD_MS) {
+          return;
+        }
         // Don't check inactivity if user just logged in (give them 30 min grace period)
         if (justLoggedInRef.current) {
           return;
@@ -73,11 +90,22 @@ export const useInactivityCheck = ({
           });
           handleSignOut();
         }
-      }, 60000); // Check every minute
+      };
+
+      // Wait 2 minutes before first check, then run every minute
+      initialDelayRef.current = setTimeout(() => {
+        runCheck();
+        activityCheckIntervalRef.current = setInterval(runCheck, CHECK_INTERVAL_MS);
+      }, 2 * 60 * 1000);
 
       return () => {
+        if (initialDelayRef.current) {
+          clearTimeout(initialDelayRef.current);
+          initialDelayRef.current = null;
+        }
         if (activityCheckIntervalRef.current) {
           clearInterval(activityCheckIntervalRef.current);
+          activityCheckIntervalRef.current = null;
         }
       };
     }
