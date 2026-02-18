@@ -174,18 +174,9 @@ export const useAuthSession = () => {
             setUser(null);
             navigate('/auth');
           } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-            // Single-session: verify we're still the active device & update our token
+            // Update our session token (refresh rotates the token, so we must update - don't validate
+            // here as the stored hash would be from the old token and would always fail)
             if (session.refresh_token) {
-              const sessionValid = await isCurrentSessionValid(session.user.id, session.refresh_token);
-              if (!sessionValid) {
-                toast({
-                  title: "Logged in elsewhere",
-                  description: "You've been signed out because you logged in on another device",
-                  variant: "destructive",
-                });
-                await handleSignOut();
-                return;
-              }
               await updateCurrentSessionToken(session.user.id, session.refresh_token);
             }
             await updateLastUsed(session.user.id);
