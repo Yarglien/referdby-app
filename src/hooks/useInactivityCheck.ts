@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { getInactivityThresholdMs, isCurrentSessionValid } from '@/utils/authCleanup';
+import { getInactivityThresholdMs, isCurrentSessionValid, isSessionExpired } from '@/utils/authCleanup';
 
 interface UseInactivityCheckProps {
   user: User | null;
@@ -37,6 +37,24 @@ export const useInactivityCheck = ({
             toast({
               title: "Logged in elsewhere",
               description: "You've been signed out because you logged in on another device",
+              variant: "destructive",
+            });
+            handleSignOut();
+            return;
+          }
+        }
+
+        // Check DB last_used for 5+ hours inactivity (e.g. returned after long absence)
+        if (session?.user?.id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('last_used')
+            .eq('id', session.user.id)
+            .single();
+          if (profile?.last_used && isSessionExpired(profile.last_used)) {
+            toast({
+              title: "Session Expired",
+              description: "You've been logged out due to inactivity",
               variant: "destructive",
             });
             handleSignOut();

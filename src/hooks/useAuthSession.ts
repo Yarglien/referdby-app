@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
   cleanupAuthState,
-  isSessionExpired,
   updateCurrentSessionToken,
   updateLastUsed,
 } from '@/utils/authCleanup';
@@ -77,26 +76,8 @@ export const useAuthSession = () => {
 
         // Check if session exists
         if (session?.user) {
-          // Single-session check skipped on init - token may not be stored yet after fresh login.
-          // Validation runs in useInactivityCheck (every 60s) instead.
-
-          // Check if user has been inactive for 5+ hours (e.g. returned to computer after long absence)
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('last_used')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profile?.last_used && isSessionExpired(profile.last_used)) {
-            console.log('Session expired due to 5+ hours inactivity, signing out');
-            toast({
-              title: "Session Expired",
-              description: "You've been logged out due to inactivity",
-              variant: "destructive",
-            });
-            await handleSignOut();
-            return;
-          }
+          // Single-session and last_used checks skipped on init - they can race with SIGNED_IN
+          // handler when effect re-runs. Both run in useInactivityCheck (every 60s) instead.
 
           setUser(session.user);
           
