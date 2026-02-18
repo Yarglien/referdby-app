@@ -1,5 +1,5 @@
 
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import Profile from "@/pages/Profile";
@@ -86,6 +86,8 @@ const AppRoutes = () => {
       <Route path="/share-points" element={<SharePoints />} />
       
       <Route path="/create-invite" element={<div className="min-h-screen flex items-center justify-center bg-background p-4"><CreateInvite /></div>} />
+      {/* Catch-all: unknown paths redirect to home (auth redirect happens in useAuthSession if logged out) */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };

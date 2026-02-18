@@ -116,8 +116,10 @@ export const useAuthSession = () => {
           // Update last used timestamp
           await updateLastUsed(session.user.id);
         } else {
-          // No session, redirect to auth (unless on signup or referral-auth page)
-          if (!location.pathname.startsWith('/signup') && !location.pathname.startsWith('/referral-auth')) {
+          // No session - redirect to auth unless on public pages
+          const publicPaths = ['/auth', '/signup', '/referral-auth', '/reset-password', '/direct-signup'];
+          const isPublicPath = publicPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'));
+          if (!isPublicPath) {
             navigate('/auth');
           }
         }
